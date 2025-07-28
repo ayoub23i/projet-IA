@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Chat with GPT</title>
+  <link rel="stylesheet" href="/static/chat.css" />
+</head>
+<body>
+  <div class="chat-wrapper">
+    <div class="chat-container">
+      <div class="chat-header" id="mode-title">GPT Assistant</div>
+
+      <div class="chat-messages" id="chat-box"></div>
+
+      <form class="chat-input" id="chat-form">
+        <input type="text" id="user-input" placeholder="Type your message..." required />
+        <button type="submit">Send</button>
+      </form>
+    </div>
+  </div>
+
+  <script>
+    const chatBox = document.getElementById("chat-box");
+    const chatForm = document.getElementById("chat-form");
+    const userInput = document.getElementById("user-input");
+    const titleElement = document.getElementById("mode-title");
+
+    const urlParams = new URLSearchParams(window.location.search);
+    const model = urlParams.get("model") || "Quiz";
+    const subject = urlParams.get("subject") || "Python";
+
+    titleElement.textContent = `${model} Assistant`;
+    const messageHistory = [];
+
+    chatForm.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      const message = userInput.value.trim();
+      if (!message) return;
+
+      appendMessage("user", message);
+      userInput.value = "";
+      messageHistory.push({ role: "user", content: message });
+
+      try {
+        const response = await fetch("/chat", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ message, model, subject, history: messageHistory })
+        });
+
+        const data = await response.json();
+        const reply = data.reply || "⚠️ No response";
+
+        appendMessage("assistant", reply);
+        messageHistory.push({ role: "assistant", content: reply });
+      } catch (err) {
+        appendMessage("assistant", "❌ Failed to connect to GPT.");
+        console.error(err);
+      }
+    });
+
+    function appendMessage(role, content) {
+      const msgDiv = document.createElement("div");
+      msgDiv.className = `message ${role}`;
+
+      const bubble = document.createElement("div");
+      bubble.className = "message-bubble";
+      bubble.textContent = content;
+
+      msgDiv.appendChild(bubble);
+      chatBox.appendChild(msgDiv);
+      chatBox.scrollTop = chatBox.scrollHeight;
+    }
+  </script>
+</body>
+</html>
